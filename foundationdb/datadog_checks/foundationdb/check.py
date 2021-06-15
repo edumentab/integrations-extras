@@ -39,7 +39,7 @@ class FoundationdbCheck(AgentCheck):
 
         if status[2] != 0:
             self.service_check("foundationdb.can_connect", AgentCheck.CRITICAL, message="`fdbcli` returned non-zero error code")
-            raise ValueError("Fdbcli failed")
+            raise ValueError("`fdbcli --exec 'status json'` failed")
 
         try:
             data = json.loads(status[0])
@@ -51,8 +51,7 @@ class FoundationdbCheck(AgentCheck):
 
     def check_metrics(self, status):
         if not "cluster" in status:
-            raise 1
-            return
+            raise ValueError("JSON Status data doesn't include cluster data")
 
         cluster = status["cluster"]
         if "degraded_processes" in cluster:
@@ -91,7 +90,6 @@ class FoundationdbCheck(AgentCheck):
                     self.maybe_gauge("foundationdb.workload.operations." + k + ".hz", v, "hz")
                     self.maybe_count("foundationdb.workload.operations." + k + ".counter", v, "counter")
 
-        print(status.keys())
         if "latency_probe" in cluster:
             for k, v in cluster["latency_probe"].items():
                 self.gauge("foundationdb.latency_probe." + k, v)
