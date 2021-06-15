@@ -5,12 +5,17 @@ from datadog_checks.base import AgentCheck
 
 # from datadog_checks.base.utils.db import QueryManager
 # from requests.exceptions import ConnectionError, HTTPError, InvalidURL, Timeout
-# from json import JSONDecodeError
+import json
+
+from datadog_checks.base.utils.subprocess_output import get_subprocess_output, SubprocessOutputEmptyError
 
 
 class FoundationdbCheck(AgentCheck):
     def __init__(self, name, init_config, instances):
-        # super(FoundationdbCheck, self).__init__(name, init_config, instances)
+        super(FoundationdbCheck, self).__init__(name, init_config, instances)
+
+    def fdb_status_data(self):
+        return get_subprocess_output(['fdbcli', '--exec', 'status json'], self.log)
 
         # If the check is going to perform SQL queries you should define a query manager here.
         # More info at
@@ -24,9 +29,81 @@ class FoundationdbCheck(AgentCheck):
         # }
         # self._query_manager = QueryManager(self, self.execute_query, queries=[sample_query])
         # self.check_initializations.append(self._query_manager.compile_queries)
-        pass
 
     def check(self, _):
+        try:
+            status = self.fdb_status_data()
+        except SubprocessOutputEmptyError as e:
+            self.service_check("foundationdb.can_connect", AgentCheck.CRITICAL, message="Did not receive a response from `status json`")
+            raise
+
+        if status[2] != 0:
+            self.service_check("foundationdb.can_connect", AgentCheck.CRITICAL, message="`fdbcli` returned non-zero error code")
+            raise ValueError("`fdbcli --exec 'status json'` failed")
+
+        try:
+            data = json.loads(status[0])
+        except Exception as e:
+            self.service_check("foundationdb.can_connect", AgentCheck.CRITICAL, message="Could not parse `status json`")
+            raise
+
+        self.check_metrics(data)
+
+    def check_metrics(self, status):
+        if not "cluster" in status:
+            raise ValueError("JSON Status data doesn't include cluster data")
+
+        cluster = status["cluster"]
+        if "degraded_processes" in cluster:
+            self.gauge("foundationdb.degraded_processes", cluster["degraded_processes"])
+        if "machines" in cluster:
+            self.gauge("foundationdb.machines", len(cluster["machines"]))
+        if "processes" in cluster:
+            self.gauge("foundationdb.processes", len(cluster["processes"]))
+
+            self.count("foundationdb.instances", sum(map(lambda p: len(p["roles"]) if "roles" in p else 0, cluster["processes"].values())))
+
+        if "data" in cluster:
+            data = cluster["data"]
+            self.maybe_gauge("foundationdb.data.system_kv_size_bytes", data, "system_kv_size_bytes")
+            self.maybe_gauge("foundationdb.data.total_disk_used_bytes", data, "total_disk_used_bytes")
+            self.maybe_gauge("foundationdb.data.total_kv_size_bytes", data, "total_kv_size_bytes")
+            self.maybe_gauge("foundationdb.data.least_operating_space_bytes_log_server", data, "least_operating_space_bytes_log_server")
+
+            if "moving_data" in data:
+                self.maybe_gauge("foundationdb.data.moving_data.in_flight_bytes", data["moving_data"], "in_flight_bytes")
+                self.maybe_gauge("foundationdb.data.moving_data.in_queue_bytes", data["moving_data"], "in_queue_bytes")
+                self.maybe_gauge("foundationdb.data.moving_data.total_written_bytes", data["moving_data"], "total_written_bytes")
+
+        if "datacenter_lag" in cluster:
+            self.gauge("foundationdb.datacenter_lag.seconds", cluster["datacenter_lag"]["seconds"])
+
+        if "workload" in cluster:
+            workload = cluster["workload"]
+            if "transactions" in workload:
+                for k, v in workload["transactions"].items():
+                    self.maybe_gauge("foundationdb.workload.transactions." + k + ".hz", v, "hz")
+                    self.maybe_count("foundationdb.workload.transactions." + k + ".counter", v, "counter")
+
+            if "operations" in workload:
+                for k, v in workload["operations"].items():
+                    self.maybe_gauge("foundationdb.workload.operations." + k + ".hz", v, "hz")
+                    self.maybe_count("foundationdb.workload.operations." + k + ".counter", v, "counter")
+
+        if "latency_probe" in cluster:
+            for k, v in cluster["latency_probe"].items():
+                self.gauge("foundationdb.latency_probe." + k, v)
+
+        self.service_check("foundationdb.can_connect", AgentCheck.OK)
+
+    def maybe_gauge(self, metric, obj, key):
+        if key in obj:
+            self.gauge(metric, obj[key])
+
+    def maybe_count(self, metric, obj, key):
+        if key in obj:
+            self.count(metric, obj[key])
+
         # type: (Any) -> None
         # The following are useful bits of code to help new users get started.
 
@@ -88,5 +165,3 @@ class FoundationdbCheck(AgentCheck):
         # More info at
         # https://datadoghq.dev/integrations-core/base/api/#datadog_checks.base.checks.base.AgentCheck.service_check
         # self.service_check("foundationdb.can_connect", AgentCheck.OK)
-
-        pass
