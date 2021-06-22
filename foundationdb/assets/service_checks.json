@@ -6,6 +6,6 @@
     "statuses": ["ok", "warning", "critical"],
     "groups": [],
     "name": "FoundationDB Check",
-    "description": "Returns `CRITICAL` if the check can't access the page, `WARNING` if the search string was not found, or `OK` otherwise."
+    "description": "Returns critical if there's an error querying the cluster status, warning if there are degraded processes, or ok otherwise."
   }
 ]
