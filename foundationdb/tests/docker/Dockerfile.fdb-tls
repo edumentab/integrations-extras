@@ -1,0 +1,10 @@
+FROM foundationdb/foundationdb:6.3.13
+WORKDIR /var/fdb/tmp
+ENV FDB_COORDINATOR=127.0.0.1
+ENV FDB_COORDINATOR_PORT=4500:tls
+ENV FDB_NETWORKING_MODE=host
+COPY fdb.bash /var/fdb/scripts/fdb-new.bash
+COPY cert.crt /var/fdb/cert.crt
+COPY fdb.pem /var/fdb/fdb.pem
+COPY private.key /var/fdb/private.key
+ENTRYPOINT ["/bin/sh", "-c", "/var/fdb/scripts/fdb-new.bash"]
