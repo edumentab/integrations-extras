@@ -53,18 +53,9 @@ class FoundationdbCheck(AgentCheck):
         self.check_metrics(data)
 
     def report_process(self, process):
-        if not process["address"]:
+        if "address" not in process:
             return
-        tags = [ "process:" + process["address"] ]
-
-        if "locality" in process:
-            locality = process["locality"]
-            if "machineid" in locality:
-                tags.append("machineid:" + locality["machineid"])
-            if "processid" in locality:
-                tags.append("processid:" + locality["processid"])
-            if "zoneid" in locality:
-                tags.append("zoneid" + locality["zoneid"])
+        tags = [ "fdb_process:" + process["address"] ]
 
         if "cpu" in process:
             self.maybe_gauge("foundationdb.process.cpu.usage_cores", process["cpu"], "usage_cores", tags)
@@ -86,7 +77,7 @@ class FoundationdbCheck(AgentCheck):
             self.maybe_gauge("foundationdb.process.memory.used_bytes", memory, "used_bytes", tags)
         if "network" in process:
             network = process["network"]
-            self.maybe_gauge("foundationdb.process.network.current_connections", network["current_connections"], tags)
+            self.maybe_gauge("foundationdb.process.network.current_connections", network, "current_connections", tags)
             self.maybe_hz_counter("foundationdb.process.network.connection_errors", network, "connection_errors", tags)
             self.maybe_hz_counter("foundationdb.process.network.connections_closed", network, "connections_closed", tags)
             self.maybe_hz_counter("foundationdb.process.network.connections_established", network, "connections_established", tags)
@@ -96,13 +87,13 @@ class FoundationdbCheck(AgentCheck):
 
         if "roles" in process:
             for role in process["roles"]:
-                self.report_role(process["roles"][role], tags)
+                self.report_role(role, tags)
 
 
     def report_role(self, role, process_tags):
         if "id" not in role or "role" not in role:
             return
-        tags = process_tags + [ "roleid:" + role["id"] ]
+        tags = process_tags + [ "fdb_role:" + role["id"] ]
 
         self.maybe_hz_counter("foundationdb.process.role.input_bytes", role, "input_bytes")
         self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes")
@@ -126,26 +117,26 @@ class FoundationdbCheck(AgentCheck):
         self.maybe_gauge("foundationdb.process.role.kvstore_used_bytes", role, "kvstore_used_bytes")
 
         if "data_lag" in role:
-            self.maybe_gauge("foundationdb.process.role.data_lag.seconds", role["data_log"], "seconds")
+            self.maybe_gauge("foundationdb.process.role.data_lag.seconds", role["data_lag"], "seconds")
         if "durability_lag" in role:
             self.maybe_gauge("foundationdb.process.role.durability_lag.seconds", role["durability_lag"], "seconds")
 
         if "grv_latency_statistics" in role:
-            self.report_statistics("foundationdb.process.role.grv_latency_statistics.default", role["grv_latency_statistics"], "default")
+            self.report_statistics("foundationdb.process.role.grv_latency_statistics.default", role["grv_latency_statistics"], "default", tags)
 
-        self.report_statistics("foundationdb.process.role.read_latency_statistics", role, "read_latency_statistics")
-        self.report_statistics("foundationdb.process.role.commit_latency_statistics", role, "commit_latency_statistics")
+        self.report_statistics("foundationdb.process.role.read_latency_statistics", role, "read_latency_statistics", tags)
+        self.report_statistics("foundationdb.process.role.commit_latency_statistics", role, "commit_latency_statistics", tags)
 
-    def report_statistics(self, metric, obj, key):
+    def report_statistics(self, metric, obj, key, tags=None):
         if key in obj:
             statistics = obj[key]
-            self.maybe_count(metric + ".count", statistics, "count")
-            self.maybe_gauge(metric + ".min", statistics, "min")
-            self.maybe_gauge(metric + ".max", statistics, "max")
-            self.maybe_gauge(metric + ".p25", statistics, "p25")
-            self.maybe_gauge(metric + ".p50", statistics, "p50")
-            self.maybe_gauge(metric + ".p90", statistics, "p90")
-            self.maybe_gauge(metric + ".p99", statistics, "p99")
+            self.maybe_count(metric + ".count", statistics, "count", tags=tags)
+            self.maybe_gauge(metric + ".min", statistics, "min", tags=tags)
+            self.maybe_gauge(metric + ".max", statistics, "max", tags=tags)
+            self.maybe_gauge(metric + ".p25", statistics, "p25", tags=tags)
+            self.maybe_gauge(metric + ".p50", statistics, "p50", tags=tags)
+            self.maybe_gauge(metric + ".p90", statistics, "p90", tags=tags)
+            self.maybe_gauge(metric + ".p99", statistics, "p99", tags=tags)
 
 
     def check_metrics(self, status):
@@ -182,12 +173,14 @@ class FoundationdbCheck(AgentCheck):
         if "workload" in cluster:
             workload = cluster["workload"]
             if "transactions" in workload:
-                for k, v in workload["transactions"].items():
-                    self.maybe_hz_counter("foundationdb.workload.transactions." + k, v)
+                transactions = workload["transactions"]
+                for k in transactions:
+                    self.maybe_hz_counter("foundationdb.workload.transactions." + k, transactions, k)
 
             if "operations" in workload:
-                for k, v in workload["operations"].items():
-                    self.maybe_hz_counter("foundationdb.workload.operations." + k, v)
+                operations = workload["operations"]
+                for k in operations:
+                    self.maybe_hz_counter("foundationdb.workload.operations." + k, operations, k)
 
         if "latency_probe" in cluster:
             for k, v in cluster["latency_probe"].items():
@@ -206,9 +199,9 @@ class FoundationdbCheck(AgentCheck):
     def maybe_hz_counter(self, metric, obj, key, tags=None):
         if key in obj:
             if "hz" in obj[key]:
-                self.gauge(metric + ".hz", obj[key]["hz"], tags=tags):
-            if "hz" in obj[key]:
-                self.gauge(metric + ".hz", obj[key]["hz"], tags=tags):
+                self.gauge(metric + ".hz", obj[key]["hz"], tags=tags)
+            if "counter" in obj[key]:
+                self.count(metric + ".counter", obj[key]["counter"], tags=tags)
 
         # type: (Any) -> None
         # The following are useful bits of code to help new users get started.

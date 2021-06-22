@@ -5,7 +5,7 @@
     "check": "foundationdb.check",
     "statuses": ["ok", "warning", "critical"],
     "groups": [],
-    "name": "Awesome search!",
+    "name": "FoundationDB Check",
     "description": "Returns `CRITICAL` if the check can't access the page, `WARNING` if the search string was not found, or `OK` otherwise."
   }
 ]
