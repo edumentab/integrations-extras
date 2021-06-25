@@ -1,0 +1,7 @@
+version: '3'
+services:
+  fdb-tls:
+    container_name: fdb-tls
+    build:
+      context: .
+      dockerfile: Dockerfile.fdb-tls
