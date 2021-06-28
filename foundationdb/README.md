@@ -64,6 +64,8 @@ logdir = /var/log/foundationdb
 trace_format = json
 ```
 
+Then restart your server.
+
 2. Enable log collection in the Datadog Agent, in your `datadog.yaml` file:
 
 ```yaml
@@ -71,7 +73,6 @@ logs_enabled: true
 ```
 
 3. Add this configuration block to your foundationdb.d/conf.yaml file to start collecting your FoundationDB logs:
-The `path` here is the `logdir` in your configuration file. Make sure the datadog agent has the privileges required to list the directory and read its files.
 
 ```yaml
 logs:
@@ -80,6 +81,8 @@ logs:
     service: foundationdb
     source: foundationdb
 ```
+
+The `path` here is the `logdir` in your configuration file. Make sure the datadog agent has the privileges required to list the directory and read its files.
 
 4. Restart the agent
 

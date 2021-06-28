@@ -9,6 +9,12 @@ init_config:
     #
     # service: <SERVICE>
 
+logs:
+  - type: file
+    path: /usr/local/foundationdb/logs/*.json
+    service: foundationdb
+    source: foundationdb
+
 ## Every instance is scheduled independent of the others.
 #
 instances:
