@@ -9,6 +9,15 @@ init_config:
     #
     # service: <SERVICE>
 
+## Uncomment this section to enable sending FoundationDB logs to Datadog.
+## FoundationDB must be configured to produce JSON logs; also check the path
+## below corresponds to your logs directory.
+#logs:
+#  - type: file
+#    path: /usr/local/foundationdb/logs/*.json
+#    service: foundationdb
+#    source: foundationdb
+
 ## Every instance is scheduled independent of the others.
 #
 instances:
