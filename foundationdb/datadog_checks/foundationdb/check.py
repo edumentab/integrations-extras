@@ -15,7 +15,10 @@ class FoundationdbCheck(AgentCheck):
         super(FoundationdbCheck, self).__init__(name, init_config, instances)
 
     def construct_cli_base(self, instance):
-        fdb_args = instance.get('base_command')[:] # do a copy not to pollute original list
+        # do a copy not to pollute original list
+        fdb_args = (instance.get('base_command')[:]
+                if 'base_command' in instance
+                else ['fdbcli'])
 
         if 'cluster_file' in instance:
             fdb_args.append('-C')
