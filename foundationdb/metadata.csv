@@ -46,6 +46,7 @@ foundationdb.process.role.input_bytes.hz,gauge
 foundationdb.process.role.input_bytes.counter,count
 foundationdb.process.role.durable_bytes.hz,gauge
 foundationdb.process.role.durable_bytes.counter,count
+foundationdb.process.role.queue_length,gauge
 foundationdb.process.role.total_queries.hz,gauge
 foundationdb.process.role.total_queries.counter,count
 foundationdb.process.role.bytes_queried.hz,gauge

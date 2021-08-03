@@ -102,6 +102,7 @@ class FoundationdbCheck(AgentCheck):
 
         self.maybe_hz_counter("foundationdb.process.role.input_bytes", role, "input_bytes", tags)
         self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes", tags)
+        self.maybe_diff_counter("foundationdb.process.role.queue_length", role, "input_bytes", "durable_bytes", tags);
         self.maybe_hz_counter("foundationdb.process.role.total_queries", role, "total_queries", tags)
         self.maybe_hz_counter("foundationdb.process.role.bytes_queried", role, "bytes_queried", tags)
         self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes", tags)
@@ -213,3 +214,7 @@ class FoundationdbCheck(AgentCheck):
                 self.gauge(metric + ".hz", obj[key]["hz"], tags=tags)
             if "counter" in obj[key]:
                 self.monotonic_count(metric + ".counter", obj[key]["counter"], tags=tags)
+
+    def maybe_diff_counter(self, metric, obj, a, b, tags):
+        if a in obj and "counter" in obj[a] and b in obj and "counter" in obj[b]:
+            self.gauge(metric, obj[a]["counter"] - obj[b]["counter"], tags=tags);
