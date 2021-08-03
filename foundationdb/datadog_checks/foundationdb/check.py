@@ -96,35 +96,35 @@ class FoundationdbCheck(AgentCheck):
 
 
     def report_role(self, role, process_tags):
-        if "id" not in role or "role" not in role:
+        if "role" not in role:
             return
-        tags = process_tags + [ "fdb_role:" + role["id"] ]
+        tags = process_tags + [ "fdb_role:" + role["role"] ]
 
-        self.maybe_hz_counter("foundationdb.process.role.input_bytes", role, "input_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.total_queries", role, "total_queries")
-        self.maybe_hz_counter("foundationdb.process.role.bytes_queried", role, "bytes_queried")
-        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.finished_queries", role, "finished_queries")
-        self.maybe_hz_counter("foundationdb.process.role.keys_queried", role, "keys_queried")
-        self.maybe_hz_counter("foundationdb.process.role.low_priority_queries", role, "low_priority_queries")
-        self.maybe_hz_counter("foundationdb.process.role.mutation_bytes", role, "mutation_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.mutations", role, "mutations")
-        self.maybe_gauge("foundationdb.process.role.stored_bytes", role, "stored_bytes")
-        self.maybe_gauge("foundationdb.process.role.query_queue_max", role, "query_queue_max")
-        self.maybe_gauge("foundationdb.process.role.local_rate", role, "local_rate")
-        self.maybe_gauge("foundationdb.process.role.kvstore_available_bytes", role, "kvstore_available_bytes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_free_bytes", role, "kvstore_free_bytes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_inline_keys", role, "kvstore_inline_keys")
-        self.maybe_gauge("foundationdb.process.role.kvstore_total_bytes", role, "kvstore_total_bytes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_total_nodes", role, "kvstore_total_nodes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_total_size", role, "kvstore_total_size")
-        self.maybe_gauge("foundationdb.process.role.kvstore_used_bytes", role, "kvstore_used_bytes")
+        self.maybe_hz_counter("foundationdb.process.role.input_bytes", role, "input_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.total_queries", role, "total_queries", tags)
+        self.maybe_hz_counter("foundationdb.process.role.bytes_queried", role, "bytes_queried", tags)
+        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.finished_queries", role, "finished_queries", tags)
+        self.maybe_hz_counter("foundationdb.process.role.keys_queried", role, "keys_queried", tags)
+        self.maybe_hz_counter("foundationdb.process.role.low_priority_queries", role, "low_priority_queries", tags)
+        self.maybe_hz_counter("foundationdb.process.role.mutation_bytes", role, "mutation_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.mutations", role, "mutations", tags)
+        self.maybe_gauge("foundationdb.process.role.stored_bytes", role, "stored_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.query_queue_max", role, "query_queue_max", tags)
+        self.maybe_gauge("foundationdb.process.role.local_rate", role, "local_rate", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_available_bytes", role, "kvstore_available_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_free_bytes", role, "kvstore_free_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_inline_keys", role, "kvstore_inline_keys", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_total_bytes", role, "kvstore_total_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_total_nodes", role, "kvstore_total_nodes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_total_size", role, "kvstore_total_size", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_used_bytes", role, "kvstore_used_bytes", tags)
 
         if "data_lag" in role:
-            self.maybe_gauge("foundationdb.process.role.data_lag.seconds", role["data_lag"], "seconds")
+            self.maybe_gauge("foundationdb.process.role.data_lag.seconds", role["data_lag"], "seconds", tags)
         if "durability_lag" in role:
-            self.maybe_gauge("foundationdb.process.role.durability_lag.seconds", role["durability_lag"], "seconds")
+            self.maybe_gauge("foundationdb.process.role.durability_lag.seconds", role["durability_lag"], "seconds", tags)
 
         if "grv_latency_statistics" in role:
             self.report_statistics("foundationdb.process.role.grv_latency_statistics.default", role["grv_latency_statistics"], "default", tags)
