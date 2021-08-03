@@ -16,8 +16,11 @@ files:
         is being used and the Datadog agent runs outside of the container.
       required: true
       value:
-        example: fdbcli --exec
-        type: string
+        example:
+          - "fdbcli"
+        type: array
+        items:
+          type: string
     - name: cluster_file
       description: |
         The path to the cluster file of the FoundationDB instance, passed as an option to `fdbcli`.

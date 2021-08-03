@@ -15,7 +15,10 @@ class FoundationdbCheck(AgentCheck):
         super(FoundationdbCheck, self).__init__(name, init_config, instances)
 
     def construct_cli_base(self, instance):
-        fdb_args = instance.get('base_command')[:] # do a copy not to pollute original list
+        # do a copy not to pollute original list
+        fdb_args = (instance.get('base_command')[:]
+                if 'base_command' in instance
+                else ['fdbcli'])
 
         if 'cluster_file' in instance:
             fdb_args.append('-C')
@@ -91,37 +94,37 @@ class FoundationdbCheck(AgentCheck):
             for role in process["roles"]:
                 self.report_role(role, tags)
 
-
     def report_role(self, role, process_tags):
-        if "id" not in role or "role" not in role:
+        if "role" not in role:
             return
-        tags = process_tags + [ "fdb_role:" + role["id"] ]
+        tags = process_tags + [ "fdb_role:" + role["role"] ]
 
-        self.maybe_hz_counter("foundationdb.process.role.input_bytes", role, "input_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.total_queries", role, "total_queries")
-        self.maybe_hz_counter("foundationdb.process.role.bytes_queried", role, "bytes_queried")
-        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.finished_queries", role, "finished_queries")
-        self.maybe_hz_counter("foundationdb.process.role.keys_queried", role, "keys_queried")
-        self.maybe_hz_counter("foundationdb.process.role.low_priority_queries", role, "low_priority_queries")
-        self.maybe_hz_counter("foundationdb.process.role.mutation_bytes", role, "mutation_bytes")
-        self.maybe_hz_counter("foundationdb.process.role.mutations", role, "mutations")
-        self.maybe_gauge("foundationdb.process.role.stored_bytes", role, "stored_bytes")
-        self.maybe_gauge("foundationdb.process.role.query_queue_max", role, "query_queue_max")
-        self.maybe_gauge("foundationdb.process.role.local_rate", role, "local_rate")
-        self.maybe_gauge("foundationdb.process.role.kvstore_available_bytes", role, "kvstore_available_bytes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_free_bytes", role, "kvstore_free_bytes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_inline_keys", role, "kvstore_inline_keys")
-        self.maybe_gauge("foundationdb.process.role.kvstore_total_bytes", role, "kvstore_total_bytes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_total_nodes", role, "kvstore_total_nodes")
-        self.maybe_gauge("foundationdb.process.role.kvstore_total_size", role, "kvstore_total_size")
-        self.maybe_gauge("foundationdb.process.role.kvstore_used_bytes", role, "kvstore_used_bytes")
+        self.maybe_hz_counter("foundationdb.process.role.input_bytes", role, "input_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes", tags)
+        self.maybe_diff_counter("foundationdb.process.role.queue_length", role, "input_bytes", "durable_bytes", tags);
+        self.maybe_hz_counter("foundationdb.process.role.total_queries", role, "total_queries", tags)
+        self.maybe_hz_counter("foundationdb.process.role.bytes_queried", role, "bytes_queried", tags)
+        self.maybe_hz_counter("foundationdb.process.role.durable_bytes", role, "durable_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.finished_queries", role, "finished_queries", tags)
+        self.maybe_hz_counter("foundationdb.process.role.keys_queried", role, "keys_queried", tags)
+        self.maybe_hz_counter("foundationdb.process.role.low_priority_queries", role, "low_priority_queries", tags)
+        self.maybe_hz_counter("foundationdb.process.role.mutation_bytes", role, "mutation_bytes", tags)
+        self.maybe_hz_counter("foundationdb.process.role.mutations", role, "mutations", tags)
+        self.maybe_gauge("foundationdb.process.role.stored_bytes", role, "stored_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.query_queue_max", role, "query_queue_max", tags)
+        self.maybe_gauge("foundationdb.process.role.local_rate", role, "local_rate", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_available_bytes", role, "kvstore_available_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_free_bytes", role, "kvstore_free_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_inline_keys", role, "kvstore_inline_keys", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_total_bytes", role, "kvstore_total_bytes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_total_nodes", role, "kvstore_total_nodes", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_total_size", role, "kvstore_total_size", tags)
+        self.maybe_gauge("foundationdb.process.role.kvstore_used_bytes", role, "kvstore_used_bytes", tags)
 
         if "data_lag" in role:
-            self.maybe_gauge("foundationdb.process.role.data_lag.seconds", role["data_lag"], "seconds")
+            self.maybe_gauge("foundationdb.process.role.data_lag.seconds", role["data_lag"], "seconds", tags)
         if "durability_lag" in role:
-            self.maybe_gauge("foundationdb.process.role.durability_lag.seconds", role["durability_lag"], "seconds")
+            self.maybe_gauge("foundationdb.process.role.durability_lag.seconds", role["durability_lag"], "seconds", tags)
 
         if "grv_latency_statistics" in role:
             self.report_statistics("foundationdb.process.role.grv_latency_statistics.default", role["grv_latency_statistics"], "default", tags)
@@ -152,8 +155,22 @@ class FoundationdbCheck(AgentCheck):
             self.gauge("foundationdb.processes", len(cluster["processes"]))
 
             self.count("foundationdb.instances", sum(map(lambda p: len(p["roles"]) if "roles" in p else 0, cluster["processes"].values())))
-            for process in cluster["processes"]:
-                self.report_process(cluster["processes"][process])
+
+            role_counts = dict()
+            for process_key in cluster["processes"]:
+                process = cluster["processes"][process_key]
+                self.report_process(process)
+                if "roles" in process:
+                    for role in process["roles"]:
+                        if "role" in role:
+                            rolename = role["role"]
+                            if rolename in role_counts:
+                                role_counts[rolename] += 1
+                            else:
+                                role_counts[rolename] = 1
+
+        for role in role_counts:
+            self.gauge("foundationdb.processes_per_role." + role, role_counts[role])
 
         if "data" in cluster:
             data = cluster["data"]
@@ -210,3 +227,7 @@ class FoundationdbCheck(AgentCheck):
                 self.gauge(metric + ".hz", obj[key]["hz"], tags=tags)
             if "counter" in obj[key]:
                 self.monotonic_count(metric + ".counter", obj[key]["counter"], tags=tags)
+
+    def maybe_diff_counter(self, metric, obj, a, b, tags):
+        if a in obj and "counter" in obj[a] and b in obj and "counter" in obj[b]:
+            self.gauge(metric, obj[a]["counter"] - obj[b]["counter"], tags=tags);
