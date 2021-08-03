@@ -7,6 +7,15 @@ foundationdb.latency_probe.transaction_start_seconds,gauge
 foundationdb.machines,gauge
 foundationdb.processes,gauge
 foundationdb.degraded_processes,gauge
+foundationdb.processes_per_role.master,gauge
+foundationdb.processes_per_role.cluster_controller,gauge
+foundationdb.processes_per_role.data_distributor,gauge
+foundationdb.processes_per_role.ratekeeper,gauge
+foundationdb.processes_per_role.coordinator,gauge
+foundationdb.processes_per_role.proxy,gauge
+foundationdb.processes_per_role.log,gauge
+foundationdb.processes_per_role.storage,gauge
+foundationdb.processes_per_role.resolver,gauge
 foundationdb.workload.transactions.committed.counter,count
 foundationdb.workload.transactions.committed.hz,gauge
 foundationdb.workload.transactions.conflicted.counter,count
